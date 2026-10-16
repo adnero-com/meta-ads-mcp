@@ -107,3 +107,9 @@ test("http: /healthz answers without credentials, GET /mcp is 405", async (t) =>
   assert.deepEqual(await h.json(), { status: "ok" });
   assert.equal((await fetch(`${mcp.url}/mcp`)).status, 405);
 });
+
+test("http: startHttpServer refuses to start without MCP_HTTP_SHARED_SECRET", async () => {
+  const { startHttpServer } = await import("../src/http.js");
+  await assert.rejects(() => startHttpServer({ PORT: "0" }), /MCP_HTTP_SHARED_SECRET/);
+  await assert.rejects(() => startHttpServer({ PORT: "0", MCP_HTTP_SHARED_SECRET: "short" }), /MCP_HTTP_SHARED_SECRET/);
+});

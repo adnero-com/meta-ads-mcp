@@ -25,7 +25,7 @@ const readBody = async (req: IncomingMessage): Promise<unknown> => {
 };
 
 export type HttpOptions = {
-  /** MCP_HTTP_SHARED_SECRET: when set, every /mcp request must carry it (x-meta-mcp-key). */
+  /** MCP_HTTP_SHARED_SECRET: every /mcp request must carry it (x-meta-mcp-key); startHttpServer requires it. */
   sharedSecret?: string;
   /** META_GRAPH_API_BASE: the Graph base URL (a fake Graph in tests). */
   graphApiBase?: string;
@@ -72,6 +72,10 @@ export function createHttpHandler(opts: HttpOptions) {
 
 export async function startHttpServer(env: NodeJS.ProcessEnv): Promise<Server> {
   const port = Number(env.PORT || 8080);
+  // Required: without it anyone who can reach the port could act with any token header.
+  if (!env.MCP_HTTP_SHARED_SECRET || env.MCP_HTTP_SHARED_SECRET.length < 16) {
+    throw new Error("MCP_HTTP_SHARED_SECRET (16+ characters) is required in HTTP mode.");
+  }
   const handler = createHttpHandler({
     sharedSecret: env.MCP_HTTP_SHARED_SECRET || undefined,
     graphApiBase: env.META_GRAPH_API_BASE || undefined,

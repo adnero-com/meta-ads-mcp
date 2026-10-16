@@ -93,3 +93,21 @@ test("tenantConfigFromHeaders ignores the environment", () => {
     delete process.env.META_AD_ACCOUNT_ID;
   }
 });
+
+import { encodeGraphPath } from "../src/services/ads-client.js";
+
+const paths: Array<[string, string | null]> = [
+  ["/act_123/campaigns", "/act_123/campaigns"],
+  ["/123456", "/123456"],
+  ["/123?fields=access_token", "/123%3Ffields%3Daccess_token"],
+  ["/123#frag", "/123%23frag"],
+  ["/act_1/../me", null],
+  ["/./me", null],
+  ["/a//b", null],
+];
+for (const [input, want] of paths) {
+  test(`encodeGraphPath(${JSON.stringify(input)})`, () => {
+    if (want === null) assert.throws(() => encodeGraphPath(input));
+    else assert.equal(encodeGraphPath(input), want);
+  });
+}

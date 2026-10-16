@@ -316,7 +316,7 @@ sit behind a gateway that sets each request's credentials as headers:
 | `x-meta-ad-account-id` | Default ad account (`act_…`) for tools whose `account_id` is omitted. |
 | `x-meta-appsecret-proof` | Optional `appsecret_proof` for the token; empty means unsigned. |
 | `x-meta-business-id`, `x-meta-pixel-id` | Optional defaults. |
-| `x-meta-mcp-key` | Required when `MCP_HTTP_SHARED_SECRET` is set: proves the request came from the gateway. |
+| `x-meta-mcp-key` | Required: must equal `MCP_HTTP_SHARED_SECRET` (16+ characters, required in HTTP mode: the server refuses to start without it). Proves the request came from the gateway. |
 
 In HTTP mode no credential is read from the environment and nothing outlives a
 request: each request gets its own server and client. `META_GRAPH_API_BASE`

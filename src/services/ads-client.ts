@@ -10,6 +10,19 @@ interface ClientResponse {
 
 export const DEFAULT_GRAPH_API_BASE = "https://graph.facebook.com/v26.0";
 
+/**
+ * A Graph path with every segment percent-encoded, so an id taken from tool
+ * arguments ("123?x=1", "a#b", "act_1/../me") can never add a query, a
+ * fragment or another path segment. "." and ".." segments are refused.
+ */
+export function encodeGraphPath(path: string): string {
+  const segments = path.replace(/^\/+/, "").split("/");
+  if (segments.some((s) => s === "." || s === ".." || s === "")) {
+    throw new Error(`Invalid Graph path segment in ${JSON.stringify(path)}`);
+  }
+  return "/" + segments.map((s) => encodeURIComponent(s)).join("/");
+}
+
 export class AdsClient {
   private config: AdsConfig;
   private baseUrl: string;
@@ -127,7 +140,7 @@ export class AdsClient {
       );
     }
 
-    let url = `${this.baseUrl}${path}`;
+    let url = `${this.baseUrl}${encodeGraphPath(path)}`;
     const init: RequestInit = { method, signal: AbortSignal.timeout(30_000) };
 
     if (method === "GET" || method === "DELETE") {
@@ -215,7 +228,7 @@ export class AdsClient {
     const blob = new Blob([new Uint8Array(file.buffer)]);
     form.set(file.fieldName, blob, file.filename);
 
-    const res = await fetch(`${this.baseUrl}${path}`, {
+    const res = await fetch(`${this.baseUrl}${encodeGraphPath(path)}`, {
       method: "POST",
       body: form,
       signal: AbortSignal.timeout(120_000),
