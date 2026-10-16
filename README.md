@@ -303,3 +303,21 @@ Your Meta access token needs the following permissions depending on which tools 
 ## License
 
 MIT
+
+## Multi-tenant HTTP mode
+
+`MCP_TRANSPORT=http node dist/index.js` (or `Dockerfile.http`) serves stateless
+Streamable HTTP on `:$PORT/mcp` (default 8080) and `GET /healthz`. It is meant to
+sit behind a gateway that sets each request's credentials as headers:
+
+| Header | Meaning |
+|---|---|
+| `x-meta-access-token` | Required. The Meta access token for this request. |
+| `x-meta-ad-account-id` | Default ad account (`act_…`) for tools whose `account_id` is omitted. |
+| `x-meta-appsecret-proof` | Optional `appsecret_proof` for the token; empty means unsigned. |
+| `x-meta-business-id`, `x-meta-pixel-id` | Optional defaults. |
+| `x-meta-mcp-key` | Required when `MCP_HTTP_SHARED_SECRET` is set: proves the request came from the gateway. |
+
+In HTTP mode no credential is read from the environment and nothing outlives a
+request: each request gets its own server and client. `META_GRAPH_API_BASE`
+overrides the Graph base URL (for tests against a fake Graph).

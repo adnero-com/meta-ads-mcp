@@ -8,12 +8,15 @@ interface ClientResponse {
   businessRateLimit?: BusinessRateLimit;
 }
 
+export const DEFAULT_GRAPH_API_BASE = "https://graph.facebook.com/v26.0";
+
 export class AdsClient {
   private config: AdsConfig;
-  private baseUrl = "https://graph.facebook.com/v26.0";
+  private baseUrl: string;
 
   constructor(config: AdsConfig) {
     this.config = config;
+    this.baseUrl = config.graphApiBase || DEFAULT_GRAPH_API_BASE;
   }
 
   private parseRateLimit(headers: Headers): {
@@ -130,6 +133,7 @@ export class AdsClient {
     if (method === "GET" || method === "DELETE") {
       const qs = new URLSearchParams();
       qs.set("access_token", this.config.accessToken);
+      if (this.config.appsecretProof) qs.set("appsecret_proof", this.config.appsecretProof);
       if (params) {
         for (const [k, v] of Object.entries(params)) {
           if (v !== undefined && v !== null && v !== "") {
@@ -141,6 +145,7 @@ export class AdsClient {
     } else {
       const body: Record<string, unknown> = {
         access_token: this.config.accessToken,
+        ...(this.config.appsecretProof ? { appsecret_proof: this.config.appsecretProof } : {}),
         ...params,
       };
       init.headers = { "Content-Type": "application/json" };
@@ -201,6 +206,7 @@ export class AdsClient {
 
     const form = new FormData();
     form.set("access_token", this.config.accessToken);
+    if (this.config.appsecretProof) form.set("appsecret_proof", this.config.appsecretProof);
     for (const [k, v] of Object.entries(fields)) {
       if (v !== undefined && v !== null && v !== "") {
         form.set(k, String(v));
