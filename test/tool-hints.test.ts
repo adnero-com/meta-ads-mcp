@@ -5,8 +5,6 @@ import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { createServer } from "../src/server.js";
 import { READ_ONLY_TOOLS, hintsFor } from "../src/tool-hints.js";
 
-const EXPECTED_READ_ONLY = `generate_preview get_account_activities get_account_insights get_ad get_ad_account get_ad_insights get_ad_preview get_adset get_adset_ads get_adset_insights get_adset_leads get_adset_targeting_sentence get_async_report get_audience get_audience_health get_batch_status get_business get_campaign get_campaign_ads get_campaign_adsets get_campaign_insights get_campaign_leads get_canvas get_catalog get_creative get_delivery_estimate get_experiment get_experiment_results get_feed_uploads get_form_leads get_image get_lead get_lead_form get_product get_product_set get_reach_estimate get_rf_prediction get_rule get_saved_audience get_targeting_suggestions get_video list_account_users list_ad_accounts list_ads list_adsets list_block_lists list_budget_schedules list_business_ad_accounts list_businesses list_business_instagram_accounts list_business_pages list_business_users list_campaigns list_canvases list_catalogs list_creatives list_custom_audiences list_experiments list_feeds list_images list_lead_forms list_offline_event_sets list_products list_product_sets list_rf_predictions list_rules list_saved_audiences list_system_users list_videos search_ad_library search_locations search_targeting search_targeting_map`.split(" ");
-
 async function listTools() {
   const server = createServer({
     accessToken: "dummy",
@@ -24,9 +22,65 @@ async function listTools() {
   return tools;
 }
 
-test("read-only set matches the reviewed table exactly", () => {
-  assert.deepEqual([...READ_ONLY_TOOLS].sort(), [...EXPECTED_READ_ONLY].sort());
-  assert.equal(READ_ONLY_TOOLS.size, EXPECTED_READ_ONLY.length);
+type JsonSchema = { type?: string; enum?: unknown[]; required?: string[]; properties?: Record<string, JsonSchema>; items?: JsonSchema };
+
+/** Minimal valid value for a schema: ids "123", enums take their first member. */
+function sample(schema: JsonSchema | undefined): unknown {
+  if (!schema) return "123";
+  if (schema.enum && schema.enum.length > 0) return schema.enum[0];
+  switch (schema.type) {
+    case "number":
+    case "integer":
+      return 1;
+    case "boolean":
+      return false;
+    case "array":
+      return [];
+    case "object":
+      return {};
+    default:
+      return "123";
+  }
+}
+
+function minimalArgs(schema: JsonSchema): Record<string, unknown> {
+  const props = schema.properties ?? {};
+  return Object.fromEntries((schema.required ?? []).map((k) => [k, sample(props[k])]));
+}
+
+test("every read-only tool only issues GET requests", async () => {
+  const seen: Array<{ method: string; url: string }> = [];
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = (async (input: unknown, init?: { method?: string }) => {
+    seen.push({ method: (init?.method ?? "GET").toUpperCase(), url: String(input) });
+    return new Response(JSON.stringify({ data: [] }), { status: 200, headers: { "content-type": "application/json" } });
+  }) as typeof fetch;
+  try {
+    const server = createServer({
+      accessToken: "dummy",
+      adAccountId: "act_1",
+      appId: "",
+      appSecret: "",
+      businessId: "b1",
+      pixelId: "",
+    });
+    const client = new Client({ name: "test", version: "0.0.0" });
+    const [a, b] = InMemoryTransport.createLinkedPair();
+    await Promise.all([server.connect(a), client.connect(b)]);
+    const { tools } = await client.listTools();
+    const readTools = tools.filter((t) => READ_ONLY_TOOLS.has(t.name));
+    assert.equal(readTools.length, READ_ONLY_TOOLS.size);
+    for (const tool of readTools) {
+      seen.length = 0;
+      await client.callTool({ name: tool.name, arguments: minimalArgs(tool.inputSchema as JsonSchema) });
+      assert.ok(seen.length > 0, `${tool.name} made no request (arguments rejected?)`);
+      const bad = seen.filter((r) => r.method !== "GET");
+      assert.deepEqual(bad, [], `${tool.name} issued a non-GET request`);
+    }
+    await client.close();
+  } finally {
+    globalThis.fetch = realFetch;
+  }
 });
 
 test("every registered tool carries annotations", async () => {
@@ -60,7 +114,7 @@ test("destructive hint: deletes, removals and delivery-changing updates; not cre
   for (const n of tools.map((t) => t.name).filter((n) => n.startsWith("delete_"))) {
     assert.equal(hint(n)?.destructiveHint, true, n);
   }
-  for (const n of ["update_campaign", "update_adset", "update_ad", "remove_users_from_audience"]) {
+  for (const n of ["update_campaign", "update_adset", "update_ad", "update_ad_account", "remove_users_from_audience"]) {
     assert.equal(hint(n)?.destructiveHint, true, n);
   }
   for (const n of ["create_campaign", "copy_ad", "upload_image"]) {
