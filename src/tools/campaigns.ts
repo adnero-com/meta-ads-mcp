@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { AdsClient } from "../services/ads-client.js";
+import { DEFAULT_ADSET_FIELDS, DEFAULT_AD_FIELDS, DEFAULT_CAMPAIGN_FIELDS, fieldsDescription } from "../default-fields.js";
 
 export function registerCampaignTools(server: McpServer, client: AdsClient): void {
   // ─── list_campaigns ────────────────────────────────────────
@@ -10,7 +11,7 @@ export function registerCampaignTools(server: McpServer, client: AdsClient): voi
     {
       status: z.string().optional().describe("Filter by status: ACTIVE, PAUSED, DELETED, ARCHIVED"),
       objective: z.string().optional().describe("Filter by objective: OUTCOME_AWARENESS, OUTCOME_ENGAGEMENT, OUTCOME_LEADS, OUTCOME_SALES, OUTCOME_TRAFFIC, OUTCOME_APP_PROMOTION"),
-      fields: z.string().optional().describe("Comma-separated fields to return"),
+      fields: z.string().optional().describe(fieldsDescription(DEFAULT_CAMPAIGN_FIELDS)),
       limit: z.number().optional().default(25).describe("Number of results (default 25)"),
       after: z.string().optional().describe("Pagination cursor for next page"),
       before: z.string().optional().describe("Pagination cursor for previous page"),
@@ -19,7 +20,7 @@ export function registerCampaignTools(server: McpServer, client: AdsClient): voi
     async ({ status, objective, fields, limit, after, before, account_id }) => {
       try {
         const params: Record<string, unknown> = {};
-        if (fields) params.fields = fields;
+        params.fields = fields || DEFAULT_CAMPAIGN_FIELDS;
         if (limit) params.limit = limit;
         if (after) params.after = after;
         if (before) params.before = before;
@@ -180,14 +181,14 @@ export function registerCampaignTools(server: McpServer, client: AdsClient): voi
     "Get all ad sets belonging to a specific campaign.",
     {
       campaign_id: z.string().describe("Campaign ID"),
-      fields: z.string().optional().describe("Comma-separated fields to return"),
+      fields: z.string().optional().describe(fieldsDescription(DEFAULT_ADSET_FIELDS)),
       limit: z.number().optional().default(25).describe("Number of results (default 25)"),
       after: z.string().optional().describe("Pagination cursor for next page"),
     },
     async ({ campaign_id, fields, limit, after }) => {
       try {
         const params: Record<string, unknown> = {};
-        if (fields) params.fields = fields;
+        params.fields = fields || DEFAULT_ADSET_FIELDS;
         if (limit) params.limit = limit;
         if (after) params.after = after;
         const { data, rateLimit } = await client.get(`/${campaign_id}/adsets`, params);
@@ -204,14 +205,14 @@ export function registerCampaignTools(server: McpServer, client: AdsClient): voi
     "Get all ads belonging to a specific campaign.",
     {
       campaign_id: z.string().describe("Campaign ID"),
-      fields: z.string().optional().describe("Comma-separated fields to return"),
+      fields: z.string().optional().describe(fieldsDescription(DEFAULT_AD_FIELDS)),
       limit: z.number().optional().default(25).describe("Number of results (default 25)"),
       after: z.string().optional().describe("Pagination cursor for next page"),
     },
     async ({ campaign_id, fields, limit, after }) => {
       try {
         const params: Record<string, unknown> = {};
-        if (fields) params.fields = fields;
+        params.fields = fields || DEFAULT_AD_FIELDS;
         if (limit) params.limit = limit;
         if (after) params.after = after;
         const { data, rateLimit } = await client.get(`/${campaign_id}/ads`, params);

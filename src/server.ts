@@ -28,6 +28,8 @@ import { registerBusinessTools } from "./tools/business.js";
 import { registerAuthTools } from "./tools/auth.js";
 import { registerAdLibraryTools } from "./tools/ad_library.js";
 
+import { applyToolHints } from "./tool-hints.js";
+
 // --- Resources & Prompts ---
 import { registerResources } from "./resources/account.js";
 import { registerPrompts } from "./prompts/index.js";
@@ -64,5 +66,6 @@ export function createServer(config: AdsConfig): McpServer {
   registerAdLibraryTools(server, client);
   registerResources(server, client);
   registerPrompts(server);
+  applyToolHints(server);
   return server;
 }

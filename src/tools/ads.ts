@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { AdsClient } from "../services/ads-client.js";
+import { DEFAULT_AD_FIELDS, fieldsDescription } from "../default-fields.js";
 
 export function registerAdTools(server: McpServer, client: AdsClient): void {
   // ─── list_ads ──────────────────────────────────────────────
@@ -11,7 +12,7 @@ export function registerAdTools(server: McpServer, client: AdsClient): void {
       campaign_id: z.string().optional().describe("Filter by campaign ID"),
       adset_id: z.string().optional().describe("Filter by ad set ID"),
       status: z.string().optional().describe("Filter by status: ACTIVE, PAUSED, DELETED, ARCHIVED"),
-      fields: z.string().optional().describe("Comma-separated fields to return"),
+      fields: z.string().optional().describe(fieldsDescription(DEFAULT_AD_FIELDS)),
       limit: z.number().optional().default(25).describe("Number of results (default 25)"),
       after: z.string().optional().describe("Pagination cursor for next page"),
       account_id: z.string().optional().describe("Ad account ID to query (e.g. 'act_123' or '123'). Falls back to META_AD_ACCOUNT_ID env var if omitted."),
@@ -19,7 +20,7 @@ export function registerAdTools(server: McpServer, client: AdsClient): void {
     async ({ campaign_id, adset_id, status, fields, limit, after, account_id }) => {
       try {
         const params: Record<string, unknown> = {};
-        if (fields) params.fields = fields;
+        params.fields = fields || DEFAULT_AD_FIELDS;
         if (limit) params.limit = limit;
         if (after) params.after = after;
         if (campaign_id) params.campaign_id = campaign_id;
