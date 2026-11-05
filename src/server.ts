@@ -29,6 +29,7 @@ import { registerAuthTools } from "./tools/auth.js";
 import { registerAdLibraryTools } from "./tools/ad_library.js";
 
 import { applyToolHints } from "./tool-hints.js";
+import { strictInputs } from "./strict-inputs.js";
 
 // --- Resources & Prompts ---
 import { registerResources } from "./resources/account.js";
@@ -67,5 +68,6 @@ export function createServer(config: AdsConfig): McpServer {
   registerResources(server, client);
   registerPrompts(server);
   applyToolHints(server);
+  strictInputs(server);
   return server;
 }
