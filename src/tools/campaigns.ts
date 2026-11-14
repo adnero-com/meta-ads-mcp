@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { AdsClient } from "../services/ads-client.js";
-import { DEFAULT_ADSET_FIELDS, DEFAULT_AD_FIELDS, DEFAULT_CAMPAIGN_FIELDS, fieldsDescription } from "../default-fields.js";
+import { DEFAULT_ADSET_FIELDS, DEFAULT_AD_FIELDS, DEFAULT_CAMPAIGN_FIELDS, adsetFields, fieldsDescription } from "../default-fields.js";
 
 export function registerCampaignTools(server: McpServer, client: AdsClient): void {
   // ─── list_campaigns ────────────────────────────────────────
@@ -188,7 +188,7 @@ export function registerCampaignTools(server: McpServer, client: AdsClient): voi
     async ({ campaign_id, fields, limit, after }) => {
       try {
         const params: Record<string, unknown> = {};
-        params.fields = fields || DEFAULT_ADSET_FIELDS;
+        params.fields = fields ? adsetFields(fields) : DEFAULT_ADSET_FIELDS;
         if (limit) params.limit = limit;
         if (after) params.after = after;
         const { data, rateLimit } = await client.get(`/${campaign_id}/adsets`, params);

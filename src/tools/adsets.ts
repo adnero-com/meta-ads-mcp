@@ -1,7 +1,10 @@
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { AdsClient } from "../services/ads-client.js";
-import { DEFAULT_ADSET_FIELDS, DEFAULT_AD_FIELDS, fieldsDescription } from "../default-fields.js";
+import { DEFAULT_ADSET_DETAIL_FIELDS, DEFAULT_ADSET_FIELDS, DEFAULT_AD_FIELDS, adsetFields, fieldsDescription } from "../default-fields.js";
+
+const TARGETING_NOTE =
+  "Targeting keys (age_min, age_max, genders, geo_locations, locales, ...) are not ad set fields: ask for targeting, or targeting{age_min,age_max}; top-level ones are moved there";
 
 export function registerAdsetTools(server: McpServer, client: AdsClient): void {
   // ─── list_adsets ───────────────────────────────────────────
@@ -11,7 +14,7 @@ export function registerAdsetTools(server: McpServer, client: AdsClient): void {
     {
       campaign_id: z.string().optional().describe("Filter by campaign ID"),
       status: z.string().optional().describe("Filter by status: ACTIVE, PAUSED, DELETED, ARCHIVED"),
-      fields: z.string().optional().describe(fieldsDescription(DEFAULT_ADSET_FIELDS)),
+      fields: z.string().optional().describe(`${fieldsDescription(DEFAULT_ADSET_FIELDS)}. ${TARGETING_NOTE}`),
       limit: z.number().optional().default(25).describe("Number of results (default 25)"),
       after: z.string().optional().describe("Pagination cursor for next page"),
       account_id: z.string().optional().describe("Ad account ID to query (e.g. 'act_123' or '123'). Falls back to META_AD_ACCOUNT_ID env var if omitted."),
@@ -19,7 +22,7 @@ export function registerAdsetTools(server: McpServer, client: AdsClient): void {
     async ({ campaign_id, status, fields, limit, after, account_id }) => {
       try {
         const params: Record<string, unknown> = {};
-        params.fields = fields || DEFAULT_ADSET_FIELDS;
+        params.fields = fields ? adsetFields(fields) : DEFAULT_ADSET_FIELDS;
         if (limit) params.limit = limit;
         if (after) params.after = after;
         if (campaign_id) params.campaign_id = campaign_id;
@@ -38,12 +41,11 @@ export function registerAdsetTools(server: McpServer, client: AdsClient): void {
     "Get details of a specific ad set by ID.",
     {
       adset_id: z.string().describe("Ad set ID"),
-      fields: z.string().optional().describe("Comma-separated fields to return"),
+      fields: z.string().optional().describe(`${fieldsDescription(DEFAULT_ADSET_DETAIL_FIELDS)}. ${TARGETING_NOTE}`),
     },
     async ({ adset_id, fields }) => {
       try {
-        const params: Record<string, unknown> = {};
-        if (fields) params.fields = fields;
+        const params: Record<string, unknown> = { fields: fields ? adsetFields(fields) : DEFAULT_ADSET_DETAIL_FIELDS };
         const { data, rateLimit } = await client.get(`/${adset_id}`, params);
         return { content: [{ type: "text" as const, text: JSON.stringify({ ...data as object, _rateLimit: rateLimit }, null, 2) }] };
       } catch (error) {
