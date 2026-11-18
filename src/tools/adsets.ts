@@ -1,3 +1,4 @@
+import { parentFiltering } from "../edge-filter.js";
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { AdsClient } from "../services/ads-client.js";
@@ -25,7 +26,8 @@ export function registerAdsetTools(server: McpServer, client: AdsClient): void {
         params.fields = fields ? adsetFields(fields) : DEFAULT_ADSET_FIELDS;
         if (limit) params.limit = limit;
         if (after) params.after = after;
-        if (campaign_id) params.campaign_id = campaign_id;
+        const filtering = parentFiltering({ campaign_id });
+        if (filtering) params.filtering = filtering;
         if (status) params.effective_status = `["${status}"]`;
         const { data, rateLimit } = await client.get(`${client.accountPath(account_id)}/adsets`, params);
         return { content: [{ type: "text" as const, text: JSON.stringify({ ...data as object, _rateLimit: rateLimit }, null, 2) }] };
