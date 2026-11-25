@@ -1,5 +1,6 @@
 import { createServer as createHttpServer, IncomingMessage, Server, ServerResponse } from "node:http";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import { scrubbing } from "./error-scrub.js";
 import { createServer } from "./server.js";
 import { tenantConfigFromHeaders } from "./tenant.js";
 
@@ -54,7 +55,10 @@ export function createHttpHandler(opts: HttpOptions) {
       return json(res, 400, rpcError(-32700, "Parse error"));
     }
     const server = createServer(tenant.config);
-    const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
+    // Every error answer is scrubbed of credentials before it is sent: the gateway scrubs results only (error-scrub.ts).
+    const transport = scrubbing(
+      new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true }),
+    );
     res.on("close", () => {
       void transport.close();
       void server.close();
